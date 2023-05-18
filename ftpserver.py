@@ -1,4 +1,5 @@
 import subprocess, os, platform
+import time
 
 
 class server:
@@ -6,9 +7,10 @@ class server:
     start server through use terimal cmd
     '''
 
-    def __init__(self, port=21):
+    def __init__(self, port=2121):
         self.port = port
         self.system = platform.system()
+        self.stream = r"./ftp.log"
 
     def start_server(self, directory, user="", passwd=""):
         '''
@@ -22,9 +24,8 @@ class server:
         if self.system == "Darwin":
             py_path = os.path.join(os.path.join(os.path.dirname(os.getcwd()), "MacOS"), "python")
         else:
-            py_path = "python"
-        py_path = r"D:\Program Files\JetBrains\pythonProject\FTP4.0\venv\Scripts\python.exe"
-        cmd_list = [py_path, "-u", "-m", "pyftpdlib"]
+            py_path = os.path.join(os.path.join(os.getcwd(), "Python"), "python")
+        cmd_list = [py_path, "-m", "pyftpdlib"]
         if directory == "":
             args = [str(self.port)]
         else:
@@ -39,12 +40,13 @@ class server:
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             startupinfo.dwFlags |= subprocess.STARTF_USESTDHANDLES
-
-            self.process = subprocess.Popen(cmd_list, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                        startupinfo=startupinfo)
+            with open(self.stream, "w") as f:
+                self.process = subprocess.Popen(cmd_list, stdout=f, stderr=f,
+                                            startupinfo=startupinfo)
         else:
-            self.process = subprocess.Popen(cmd_list, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-
+            with open(self.stream, "w") as f:
+                self.process = subprocess.Popen(cmd_list, stdout=f, stderr=f)
+        time.sleep(1)
     def stop_server(self):
         '''
         stop server

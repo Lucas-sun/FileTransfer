@@ -1,4 +1,5 @@
 import shutil, random, string, os, tkinter, re, multiprocessing, threading
+import sys
 import time
 from tkinter import *
 from tkinter.messagebox import *
@@ -16,6 +17,8 @@ class GUI:
         self.http_share_path = None
         self.ftpserver = ftpserver.server()
         self.httpserver = httpserver.server()
+        self.Fuse = True
+        self.Huse = True
 
     def main(self):
         '''
@@ -25,7 +28,7 @@ class GUI:
         win = TkinterDnD.Tk()
         win.title("file server")
 
-        w = 500
+        w = 600
         h = 700
         # get screen width and height for make software locate center in screen
         ws = win.winfo_screenwidth()
@@ -43,7 +46,7 @@ class GUI:
                 if hasattr(self, "ftp_share_path") and not self.ftp_share_path is None:
                     shutil.rmtree(self.ftp_share_path, ignore_errors=True)
                     self.ftp_share_path = None
-                if hasattr(self, "http_share_path") and not self.http_share_path is None:
+                if hasattr(self, "http_share_path") and not self.http_share_path is None and not self.httpprotocol.get() == "nocache":
                     shutil.rmtree(self.http_share_path, ignore_errors=True)
                     self.http_share_path = None
                 self.ftpserver.stop_server()
@@ -75,7 +78,7 @@ class GUI:
   1.选择传输协议(http协议需要客户端在浏览器输入，
       ftp需要客户端在文件管理器或支持ftp协议下载的软件使用)
   2.需要这份文件的其他用户在局域网内相应位置输入网址即可访问'''
-        Label(description, text=text, justify=LEFT, font=("黑体", 12), wraplength=480).pack(side=TOP, fill=BOTH,
+        Label(description, text=text, justify=LEFT, anchor=W, font=("黑体", 12), wraplength=480).pack(side=TOP, fill=BOTH,
                                                                                           expand=True)
         Label(description, text="注意：文件列表不可更改，如需更改，重新拖动文件覆盖即可", anchor=W, foreground="red", font=("黑体", 10)).pack(
             side=TOP, fill=BOTH, expand=True)
@@ -86,22 +89,24 @@ class GUI:
         self.IPLabel.pack(side=LEFT, fill=X, padx=5, expand=True)
         self.IPLabel.config(state="readonly")
 
-        def copy(str):
-            pyperclip.copy(str)
+        def copy():
+            try:
+                pyperclip.copy(self.IPLabel.get())
+                def timer():
+                    self.button.config(text="复制成功", state=DISABLED)
+                    time.sleep(1)
+                    self.button.config(text="复制", state=NORMAL)
 
-            def timer():
-                self.button.config(text="复制成功", state=DISABLED)
-                time.sleep(1)
-                self.button.config(text="复制", state=NORMAL)
+                threading.Thread(target=timer, daemon=True).start()
+            except Exception as e:
+                showerror("错误", str(e))
 
-            threading.Thread(target=timer, daemon=True).start()
-
-        self.button = Button(url, text="复制", width=10, command=lambda: copy(self.IPLabel.get()))
+        self.button = Button(url, text="复制", width=10, command=copy)
         self.button.config(state=DISABLED)
         self.button.pack(side=LEFT, fill=X, padx=3)
 
         tab_Style = ttk.Style()
-        tab_Style.configure('TNotebook.Tab', font=('黑体', '14'))
+        tab_Style.configure('TNotebook.Tab', font=('黑体', '14'), anchor="nesw")
         ttk.Style().configure('my.TNotebook', tabposition="nesw")
         tab = ttk.Notebook(root, style="my.TNotebook")
         tab.pack(side=TOP, fill=BOTH, padx=5, pady=(10, 5), expand=True)
@@ -119,10 +124,10 @@ class GUI:
             upassword = tkinter.Frame(Frame)
             upassword.pack(side=TOP)
             Label(upassword, text="账号：").grid(row=0, column=0, pady=(10, 5))
-            self.user = Entry(upassword)
+            self.user = Entry(upassword, width=14)
             self.user.grid(row=0, column=1, columnspan=2, pady=(10, 5))
             Label(upassword, text="密码：").grid(row=0, column=3, pady=(10, 5))
-            self.passwd = Entry(upassword)
+            self.passwd = Entry(upassword, width=14)
             self.passwd.grid(row=0, column=4, columnspan=2, pady=(10, 5))
 
             self.Fdrag = Label(Frame, text="拖拽文件到这里", background="gray", font=("黑体", 14))
@@ -161,12 +166,14 @@ class GUI:
             '''
             iszipped = tkinter.Frame(Frame)
             iszipped.pack(side=TOP)
-            self.protocol = StringVar()
-            self.protocol.set("zip")
-            R1 = Radiobutton(iszipped, text="压缩", font=("黑体", 12), anchor=W, variable=self.protocol, value="zip")
-            R1.grid(row=0, column=0, padx=(0, 20))
-            R2 = Radiobutton(iszipped, text="不压缩", font=("黑体", 12), anchor=W, variable=self.protocol, value="nozip")
-            R2.grid(row=0, column=1, padx=(20, 0))
+            self.httpprotocol = StringVar()
+            self.httpprotocol.set("zip")
+            R1 = Radiobutton(iszipped, text="压缩", font=("黑体", 12), anchor=W, variable=self.httpprotocol, value="zip")
+            R1.grid(row=0, column=0, padx=(0, 40))
+            R2 = Radiobutton(iszipped, text="不压缩", font=("黑体", 12), anchor=W, variable=self.httpprotocol, value="nozip")
+            R2.grid(row=0, column=1, padx=(0, 0))
+            R3 = Radiobutton(iszipped, text="不缓存", font=("黑体", 12), anchor=W, variable=self.httpprotocol, value="nocache")
+            R3.grid(row=0, column=2, padx=(40, 0))
 
             self.Hdrag = Label(Frame, text="拖拽文件到这里", background="gray", font=("黑体", 14))
             self.Hdrag.pack(side=TOP, fill=BOTH, padx=5, pady=5, expand=True)
@@ -246,7 +253,7 @@ class GUI:
         return file_path
 
     @classmethod
-    def Move(cls, directorys, targetpath, pipe):
+    def Move(cls, directorys, targetpath, pipe=None):
         '''
         Move folders and files to cache
         :return:
@@ -259,25 +266,38 @@ class GUI:
                 shutil.copytree(directory, os.path.join(share_path, os.path.basename(directory)))
             else:
                 shutil.copy(directory, os.path.join(share_path, os.path.basename(directory)))
-        pipe.send(share_path)
-        pipe.close()
+        if not pipe is None:
+            pipe.send(share_path)
+            pipe.close()
 
     def ftp_drag(self, event):
         try:
-            self.ftpserver.stop_server()
-            self.httpserver.stop_server()
-            if hasattr(self, "Fdrag"):
-                self.Fdrag.configure(background="gray")
-            file_paths = GUI.get_all_path(event.data)
-            self.clear_ftpfile()
-            for path in file_paths:
-                self.show_ftpfile(path)
-                if not self.ftp_share_path is None and (
-                        os.path.basename(self.ftp_share_path) in path or os.path.basename(path) in self.ftp_share_path):
-                    raise Exception("缓存文件不允许分享！！！请检查你的分享文件")
-            self.ftp_share()
+            if self.Fuse:
+                self.clear_IP()
+                self.ftpserver.stop_server()
+                self.httpserver.stop_server()
+                if hasattr(self, "Fdrag"):
+                    self.Fdrag.configure(background="gray")
+                file_paths = GUI.get_all_path(event.data)
+                self.clear_ftpfile()
+                for path in file_paths:
+                    self.show_ftpfile(path)
+                    if not self.ftp_share_path is None and (
+                            os.path.basename(self.ftp_share_path) in path or os.path.basename(path) in self.ftp_share_path):
+                        raise Exception("缓存文件不允许分享！！！请检查你的分享文件")
+                self.ftp_share()
+            else:
+                showerror("错误", "请稍后操作")
+                if hasattr(self, "Fdrag"):
+                    self.Fdrag.configure(background="gray")
         except Exception as e:
             self.clear_IP()
+            if hasattr(self, "ftp_share_path") and not self.ftp_share_path is None:
+                shutil.rmtree(self.ftp_share_path, ignore_errors=True)
+                self.ftp_share_path = None
+            if hasattr(self, "http_share_path") and not self.http_share_path is None and not self.httpprotocol.get() == "nocache":
+                shutil.rmtree(self.http_share_path, ignore_errors=True)
+                self.http_share_path = None
             showerror("错误", str(e))
 
     def ftp_share(self):
@@ -288,6 +308,7 @@ class GUI:
                 raise Exception("没有路径")
             if not self.ftp_share_path is None:
                 shutil.rmtree(self.ftp_share_path, ignore_errors=True)
+                self.ftp_share_path = None
 
             dirname = "".join(random.sample(string.ascii_letters, 6))
             share_path = os.path.join(os.getcwd(), dirname)
@@ -300,7 +321,13 @@ class GUI:
 
             def Share(T: multiprocessing.Process):
                 try:
-                    T.join(timeout=10)
+                    self.show_IP("请勿操作，等待中...")
+                    self.Fuse = False
+                    self.Huse = False
+                    T.join(timeout=180)
+                    self.Fuse = True
+                    self.Huse = True
+                    self.clear_IP()
                     if T.is_alive():
                         T.terminate()
                         T.join()
@@ -316,20 +343,33 @@ class GUI:
 
                     def check_server():
                         try:
-                            for i in range(10):
-                                pipe = self.ftpserver.process.stdout.readline().decode()
-                                pattern = re.compile(r"starting FTP server")
-                                if not pattern.search(pipe) is None:
-                                    self.show_IP(f"ftp://{self.ftpserver.getLocalIP()[0]}")
-                                    return 0
+                            with open(self.ftpserver.stream, "r") as f:
+                                pipe = f.read()
+                            pattern = re.compile(r"starting FTP server")
+                            if not pattern.search(pipe) is None:
+                                IP_info, port_info = self.ftpserver.getLocalIP()
+                                self.show_IP(f"ftp://{IP_info}:{port_info}")
+                                return 0
                             raise Exception("启动失败！")
                         except Exception as e:
                             self.clear_IP()
+                            if hasattr(self, "ftp_share_path") and not self.ftp_share_path is None:
+                                shutil.rmtree(self.ftp_share_path, ignore_errors=True)
+                                self.ftp_share_path = None
+                            if hasattr(self, "http_share_path") and not self.http_share_path is None and not self.httpprotocol.get() == "nocache":
+                                shutil.rmtree(self.http_share_path, ignore_errors=True)
+                                self.http_share_path = None
                             showerror("错误", str(e))
 
                     threading.Thread(target=check_server, daemon=True).start()
                 except Exception as e:
                     self.clear_IP()
+                    if hasattr(self, "ftp_share_path") and not self.ftp_share_path is None:
+                        shutil.rmtree(self.ftp_share_path, ignore_errors=True)
+                        self.ftp_share_path = None
+                    if hasattr(self, "http_share_path") and not self.http_share_path is None and not self.httpprotocol.get() == "nocache":
+                        shutil.rmtree(self.http_share_path, ignore_errors=True)
+                        self.http_share_path = None
                     showerror("错误", str(e))
 
             share = threading.Thread(target=Share, args=(move,), daemon=True)
@@ -337,94 +377,145 @@ class GUI:
 
         except Exception as e:
             self.clear_IP()
+            if hasattr(self, "ftp_share_path") and not self.ftp_share_path is None:
+                shutil.rmtree(self.ftp_share_path, ignore_errors=True)
+                self.ftp_share_path = None
+            if hasattr(self, "http_share_path") and not self.http_share_path is None and not self.httpprotocol.get() == "nocache":
+                shutil.rmtree(self.http_share_path, ignore_errors=True)
+                self.http_share_path = None
             showerror("错误", str(e))
 
     @classmethod
-    def preprocessing(cls, directorys, pipe):
+    def preprocessing(cls, directorys, path, iszip=True):
         '''
         preprocess path
         :param directory:
         :return:
         '''
-        dirname = "".join(random.sample(string.ascii_letters, 6))
         perfect_dir = False
-        share_path = os.path.join(os.getcwd(), dirname)
+        share_path = path
         if not os.path.exists(share_path):
             os.mkdir(share_path)
-        for directory in directorys:
-            result = logic.judge_file_type(directory)
-            if result[0] == logic.PATH:
-                if result[1]:
-                    perfect_dir = True
-                    shutil.copytree(directory, os.path.join(share_path, os.path.basename(directory)))
-                else:
+        if iszip:
+            for directory in directorys:
+                result = logic.judge_file_type(directory)
+                if result[0] == logic.PATH:
+                    if result[1]:
+                        perfect_dir = True
+                        shutil.copytree(directory, os.path.join(share_path, os.path.basename(directory)))
+                    else:
+                        perfect_dir = False
+                        logic.zip_item(directory, os.path.join(share_path,
+                                                               os.path.basename(directory).split(r".")[0] + ".zip"))
+                elif result[0] == logic.TEXT:
                     perfect_dir = False
                     logic.zip_item(directory, os.path.join(share_path,
                                                            os.path.basename(directory).split(r".")[0] + ".zip"))
-            elif result[0] == logic.TEXT:
-                perfect_dir = False
-                logic.zip_item(directory, os.path.join(share_path,
-                                                       os.path.basename(directory).split(r".")[0] + ".zip"))
-            elif result[0] == logic.STREAM:
-                perfect_dir = False
-                shutil.copy(directory, share_path)
-            elif result[0] == logic.APP:
-                dir_name = "".join(random.sample(string.ascii_letters, 6))
-                temp_path = os.path.join(os.path.dirname(directory), dir_name)
-                shutil.copytree(directory, os.path.join(temp_path, os.path.basename(directory)))
-                logic.zip_item(temp_path, os.path.join(share_path,
-                                                       os.path.basename(directory).split(r".")[0] + ".zip"))
-                logic.delete_dir(temp_path)
-        pipe.send((perfect_dir, share_path))
-        pipe.close()
+                elif result[0] == logic.STREAM:
+                    perfect_dir = False
+                    shutil.copy(directory, share_path)
+                elif result[0] == logic.APP:
+                    dir_name = "".join(random.sample(string.ascii_letters, 6))
+                    temp_path = os.path.join(os.path.dirname(directory), dir_name)
+                    shutil.copytree(directory, os.path.join(temp_path, os.path.basename(directory)))
+                    logic.zip_item(temp_path, os.path.join(share_path,
+                                                           os.path.basename(directory).split(r".")[0] + ".zip"))
+                    logic.delete_dir(temp_path)
+        else:
+            GUI.Move(directorys, share_path)
 
     def http_drag(self, event):
-        global preprocessing
-        self.httpserver.stop_server()
-        self.ftpserver.stop_server()
-        if hasattr(self, "Hdrag"):
-            self.Hdrag.configure(background="gray")
-        if not self.http_share_path is None:
-            shutil.rmtree(self.http_share_path, ignore_errors=True)
-        file_paths = GUI.get_all_path(event.data)
-        self.clear_httpfile()
-        for path in file_paths:
-            self.show_httpfile(path)
-            if not self.http_share_path is None and (
-                    os.path.basename(self.http_share_path) in path or os.path.basename(path) in self.http_share_path):
-                raise Exception("缓存文件不允许分享！！！请检查你的分享文件")
-
-        (con1, con2) = multiprocessing.Pipe()
-        if hasattr(self, "httpfileList"):
-            preprocessing = multiprocessing.Process(target=GUI.preprocessing,
-                                                    args=(self.httpfileList.get("0", END), con1), daemon=True)
-            preprocessing.start()
-
-        def Share(T: multiprocessing.Process):
-            try:
-                T.join(10)
-                if T.is_alive():
-                    T.terminate()
-                    T.join()
-                    T.close()
-                    raise Exception("文件太大啦~")
-                (_, share_path) = con2.recv()
-                for dir in file_paths:
-                    if self.http_share_path is None and os.path.basename(dir) in share_path:
-                        raise Exception("缓存文件不允许分享！！！请检查你的分享文件")
-                self.http_share_path = share_path
-                con2.close()
-                self.httpserver.start_server(self.http_share_path)
-                for i in range(10):
-                    pipe = self.httpserver.process.stdout.readline().decode()
-                    pattern = re.compile(r"Serving HTTP on")
-                    if not pattern.search(pipe) is None:
-                        self.show_IP(f"{self.httpserver.getLocalIP()[0]}")
-                        return 0
-                raise Exception("启动失败")
-            except Exception as e:
+        try:
+            if self.Huse:
+                global preprocessing
                 self.clear_IP()
-                showerror("错误", str(e))
+                self.httpserver.stop_server()
+                self.ftpserver.stop_server()
+                if hasattr(self, "Hdrag"):
+                    self.Hdrag.configure(background="gray")
+                if not self.http_share_path is None:
+                    shutil.rmtree(self.http_share_path, ignore_errors=True)
+                    self.http_share_path = None
+                file_paths = GUI.get_all_path(event.data)
+                self.clear_httpfile()
 
-        share = threading.Thread(target=Share, args=(preprocessing,), daemon=True)
-        share.start()
+                dirname = "".join(random.sample(string.ascii_letters, 6))
+                share_path = os.path.join(os.getcwd(), dirname)
+                for path in file_paths:
+                    self.show_httpfile(path)
+                    if os.path.basename(share_path) in path or os.path.basename(path) in share_path:
+                        print(share_path, path)
+                        raise Exception("缓存文件不允许分享！！！请检查你的分享文件")
+
+                if hasattr(self, "httpfileList") and hasattr(self, "httpprotocol"):
+                    if self.httpprotocol.get() == "zip":
+                        preprocessing = multiprocessing.Process(target=GUI.preprocessing,
+                                                                args=(self.httpfileList.get("0", END), share_path, True), daemon=True)
+                    elif self.httpprotocol.get() == "nozip":
+                        preprocessing = multiprocessing.Process(target=GUI.preprocessing,
+                                                                args=(self.httpfileList.get("0", END), share_path, False),
+                                                                daemon=True)
+                    else:
+                        if len(file_paths)>1:
+                            raise Exception("该模式不支持多文件分享！")
+                        pattern = re.compile(r"\.")
+                        if pattern.search(os.path.basename(file_paths[0])) is None:
+                            share_path = file_paths[0]
+                        else:
+                            share_path = os.path.dirname(file_paths[0])
+                        preprocessing = multiprocessing.Process(daemon=True)
+                    preprocessing.start()
+
+                def Share(T: multiprocessing.Process):
+                    try:
+                        self.show_IP("请勿操作，等待中...")
+                        self.Huse = False
+                        self.Fuse = False
+                        T.join(180)
+                        self.Huse = True
+                        self.Fuse = True
+                        self.clear_IP()
+                        if T.is_alive():
+                            T.terminate()
+                            T.join()
+                            T.close()
+                            raise Exception("文件太大啦~")
+                        for dir in file_paths:
+                            if self.http_share_path is None and os.path.basename(dir) in share_path and not self.httpprotocol.get() == "nocache":
+                                raise Exception("缓存文件不允许分享！！！请检查你的分享文件")
+                        self.http_share_path = share_path
+                        self.httpserver.start_server(self.http_share_path)
+                        with open(self.httpserver.stream, "r") as f:
+                            pipe = f.read()
+                        if self.httpprotocol.get() == "nocache":
+                            self.http_share_path = None
+                        pattern = re.compile(r"Serving HTTP on")
+                        if not pattern.search(pipe) is None:
+                            self.show_IP(f"{self.httpserver.getLocalIP()[0]}")
+                            return 0
+                        raise Exception("启动失败")
+                    except Exception as e:
+                        self.clear_IP()
+                        if hasattr(self, "ftp_share_path") and not self.ftp_share_path is None:
+                            shutil.rmtree(self.ftp_share_path, ignore_errors=True)
+                            self.ftp_share_path = None
+                        if hasattr(self, "http_share_path") and not self.http_share_path is None and not self.httpprotocol.get() == "nocache":
+                            shutil.rmtree(self.http_share_path, ignore_errors=True)
+                            self.http_share_path = None
+                        showerror("错误", str(e))
+
+                share = threading.Thread(target=Share, args=(preprocessing,), daemon=True)
+                share.start()
+            else:
+                showerror("错误", "请稍后操作")
+                if hasattr(self, "Hdrag"):
+                    self.Hdrag.configure(background="gray")
+        except Exception as e:
+            self.clear_IP()
+            if hasattr(self, "ftp_share_path") and not self.ftp_share_path is None:
+                shutil.rmtree(self.ftp_share_path, ignore_errors=True)
+                self.ftp_share_path = None
+            if hasattr(self, "http_share_path") and not self.http_share_path is None and not self.httpprotocol.get() == "nocache":
+                shutil.rmtree(self.http_share_path, ignore_errors=True)
+                self.http_share_path = None
+            showerror("错误", str(e))

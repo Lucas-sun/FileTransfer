@@ -1,4 +1,4 @@
-import subprocess, os, platform
+import subprocess, os, platform, time
 
 
 class server:
@@ -9,6 +9,7 @@ class server:
     def __init__(self, port=80):
         self.port = port
         self.system = platform.system()
+        self.stream = r"./http.log"
 
     def start_server(self, directory):
         '''
@@ -22,8 +23,7 @@ class server:
         if self.system == "Darwin":
             py_path = os.path.join(os.path.join(os.path.dirname(os.getcwd()), "MacOS"), "python")
         else:
-            py_path = os.path.join(os.getcwd(), "python")
-        py_path = r"D:\Program Files\JetBrains\pythonProject\FTP4.0\venv\Scripts\python.exe"
+            py_path = os.path.join(os.path.join(os.getcwd(), "Python"), "python")
         cmd_list = [py_path, "-u", "-m", "http.server"]
         if directory == "":
             args = [str(self.port)]
@@ -35,11 +35,13 @@ class server:
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
             startupinfo.dwFlags |= subprocess.STARTF_USESTDHANDLES
-
-            self.process = subprocess.Popen(cmd_list, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+            with open(self.stream, "w") as f:
+                self.process = subprocess.Popen(cmd_list, stdout=f, stderr=f,
                                             startupinfo=startupinfo)
         else:
-            self.process = subprocess.Popen(cmd_list, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            with open(self.stream, "w") as f:
+                self.process = subprocess.Popen(cmd_list, stdout=f, stderr=f)
+        time.sleep(1)
 
     def stop_server(self):
         '''
