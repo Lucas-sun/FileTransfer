@@ -12,7 +12,7 @@ class server:
         self.system = platform.system()
         self.stream = r"./ftp.log"
 
-    def start_server(self, directory, user="", passwd=""):
+    def start_server(self, directory, user="", passwd="", port=None):
         '''
         start server
         :param directory: the dict need be shared
@@ -20,6 +20,8 @@ class server:
         :param stderr: redirect error output
         :return:
         '''
+        if not port is None:
+            self.port = port
         global py_path
         if self.system == "Darwin":
             py_path = os.path.join(os.path.join(os.path.dirname(os.getcwd()), "MacOS"), "python")

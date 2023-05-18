@@ -13,6 +13,8 @@ import logic
 
 class GUI:
     def __init__(self):
+        self.Hport = None
+        self.Fport = None
         self.ftp_share_path = None
         self.http_share_path = None
         self.ftpserver = ftpserver.server()
@@ -129,6 +131,10 @@ class GUI:
             Label(upassword, text="密码：").grid(row=0, column=3, pady=(10, 5))
             self.passwd = Entry(upassword, width=14)
             self.passwd.grid(row=0, column=4, columnspan=2, pady=(10, 5))
+            Label(upassword, text="端口号：").grid(row=0, column=6, padx=(25, 0), pady=(10, 5))
+            self.Fport = Entry(upassword, width=6)
+            self.Fport.grid(row=0, column=7, pady=(10, 5))
+            self.Fport.insert(END, "2121")
 
             self.Fdrag = Label(Frame, text="拖拽文件到这里", background="gray", font=("黑体", 14))
             self.Fdrag.pack(side=TOP, fill=BOTH, padx=5, pady=5, expand=True)
@@ -169,11 +175,15 @@ class GUI:
             self.httpprotocol = StringVar()
             self.httpprotocol.set("zip")
             R1 = Radiobutton(iszipped, text="压缩", font=("黑体", 12), anchor=W, variable=self.httpprotocol, value="zip")
-            R1.grid(row=0, column=0, padx=(0, 40))
+            R1.grid(row=0, column=0, padx=(0, 40), pady=(10, 5))
             R2 = Radiobutton(iszipped, text="不压缩", font=("黑体", 12), anchor=W, variable=self.httpprotocol, value="nozip")
-            R2.grid(row=0, column=1, padx=(0, 0))
+            R2.grid(row=0, column=1, padx=(0, 0), pady=(10, 5))
             R3 = Radiobutton(iszipped, text="不缓存", font=("黑体", 12), anchor=W, variable=self.httpprotocol, value="nocache")
-            R3.grid(row=0, column=2, padx=(40, 0))
+            R3.grid(row=0, column=2, padx=(40, 0), pady=(10, 5))
+            Label(iszipped, text="端口号：").grid(row=0, column=3, padx=(25, 0), pady=(10, 5))
+            self.Hport = Entry(iszipped, width=6)
+            self.Hport.grid(row=0, column=4, pady=(10, 5))
+            self.Hport.insert(END, "80")
 
             self.Hdrag = Label(Frame, text="拖拽文件到这里", background="gray", font=("黑体", 14))
             self.Hdrag.pack(side=TOP, fill=BOTH, padx=5, pady=5, expand=True)
@@ -337,9 +347,9 @@ class GUI:
                     con2.close()
                     self.ftp_share_path = share_path
                     if hasattr(self, "user") and hasattr(self, "passwd"):
-                        self.ftpserver.start_server(self.ftp_share_path, self.user.get(), self.passwd.get())
+                        self.ftpserver.start_server(self.ftp_share_path, self.user.get(), self.passwd.get(), port=int(self.Fport.get()))
                     else:
-                        self.ftpserver.start_server(self.ftp_share_path)
+                        self.ftpserver.start_server(self.ftp_share_path, port=int(self.Fport.get()))
 
                     def check_server():
                         try:
@@ -348,7 +358,10 @@ class GUI:
                             pattern = re.compile(r"starting FTP server")
                             if not pattern.search(pipe) is None:
                                 IP_info, port_info = self.ftpserver.getLocalIP()
-                                self.show_IP(f"ftp://{IP_info}:{port_info}")
+                                if port_info == 21:
+                                    self.show_IP(f"ftp://{IP_info}")
+                                else:
+                                    self.show_IP(f"ftp://{IP_info}:{port_info}")
                                 return 0
                             raise Exception("启动失败！")
                         except Exception as e:
@@ -484,14 +497,18 @@ class GUI:
                             if self.http_share_path is None and os.path.basename(dir) in share_path and not self.httpprotocol.get() == "nocache":
                                 raise Exception("缓存文件不允许分享！！！请检查你的分享文件")
                         self.http_share_path = share_path
-                        self.httpserver.start_server(self.http_share_path)
+                        self.httpserver.start_server(self.http_share_path, port=int(self.Hport.get()))
                         with open(self.httpserver.stream, "r") as f:
                             pipe = f.read()
                         if self.httpprotocol.get() == "nocache":
                             self.http_share_path = None
                         pattern = re.compile(r"Serving HTTP on")
                         if not pattern.search(pipe) is None:
-                            self.show_IP(f"{self.httpserver.getLocalIP()[0]}")
+                            IP_info, port_info = self.httpserver.getLocalIP()
+                            if port_info == 80:
+                                self.show_IP(f"{IP_info}")
+                            else:
+                                self.show_IP(f"{IP_info}:{port_info}")
                             return 0
                         raise Exception("启动失败")
                     except Exception as e:
