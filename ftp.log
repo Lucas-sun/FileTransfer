@@ -1,6 +1,0 @@
-[I 2023-05-17 10:26:17] concurrency model: async
-[I 2023-05-17 10:26:17] masquerade (NAT) address: None
-[I 2023-05-17 10:26:17] passive ports: None
-[I 2023-05-17 10:26:17] >>> starting FTP server on :::21, pid=42990 <<<
-/Library/Frameworks/Python.framework/Versions/3.8/lib/python3.8/multiprocessing/resource_tracker.py:216: UserWarning: resource_tracker: There appear to be 6 leaked semaphore objects to clean up at shutdown
-  warnings.warn('resource_tracker: There appear to be %d '
